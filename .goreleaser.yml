@@ -23,7 +23,7 @@ builds:
     ignore:
       - goos: darwin
         goarch: "386"
-      - goo: windows
+      - goos: windows
         goarch: arm
     binary: "{{ .ProjectName }}_v{{ .Version }}"
 archives:
@@ -32,7 +32,15 @@ archives:
 checksum:
   algorithm: sha256
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
-release:
-  draft: true
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
 changelog:
-  skip: true
+  disable: true
