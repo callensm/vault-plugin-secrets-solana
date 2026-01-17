@@ -13,7 +13,12 @@ func pathWallet(s *SolanaBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: "wallet/" + framework.GenericNameRegex("id"),
-			Fields:  map[string]*framework.FieldSchema{},
+			Fields: map[string]*framework.FieldSchema{
+				"id": {
+					Type:        framework.TypeString,
+					Description: "Unique identifier for the wallet keypair",
+				},
+			},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: s.pathWalletWrite,
@@ -42,6 +47,7 @@ func pathWallet(s *SolanaBackend) []*framework.Path {
 		},
 		{
 			Pattern: "wallets/?$",
+			Fields:  map[string]*framework.FieldSchema{},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ListOperation: &framework.PathOperation{
 					Callback: s.pathWalletList,

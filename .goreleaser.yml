@@ -35,8 +35,7 @@ builds:
 
 archives:
   - id: vault-plugin-secrets-solana
-    builds:
-      - vault-plugin-secrets-solana
+    ids: [vault-plugin-secrets-solana]
     formats: ['zip']
     name_template: >-
       {{ .ProjectName }}_

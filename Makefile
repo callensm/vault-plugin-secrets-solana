@@ -1,4 +1,4 @@
-build:
+build: clean
 	go build -o build/plugins/vault-plugin-secrets-solana cmd/vault-plugin-secrets-solana/main.go
 
 clean:
