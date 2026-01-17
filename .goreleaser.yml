@@ -1,10 +1,12 @@
 version: 2
+
 before:
   hooks:
     - go mod tidy
+
 builds:
   - binary: "{{ .ProjectName }}_v{{ .Version }}"
-    no_main_check: true
+    main: ./cmd/vault-plugin-secrets-solana
     env:
       - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
@@ -27,12 +29,22 @@ builds:
         goarch: "386"
       - goos: windows
         goarch: arm
+
 archives:
   - formats: ['zip']
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+      
 checksum:
   algorithm: sha256
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
+
 signs:
   - artifacts: checksum
     args:
@@ -43,5 +55,6 @@ signs:
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
+
 changelog:
   disable: true
