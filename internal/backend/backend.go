@@ -35,6 +35,7 @@ func newSolanaBackend() *SolanaBackend {
 			},
 		},
 		Paths: framework.PathAppend(
+			pathMessage(&s),
 			pathWallet(&s),
 		),
 		Secrets:     []*framework.Secret{},
