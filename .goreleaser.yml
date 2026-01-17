@@ -5,7 +5,6 @@ before:
 builds:
   - binary: "{{ .ProjectName }}_v{{ .Version }}"
     no_main_check: true
-    buildmode: plugin
     env:
       - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
