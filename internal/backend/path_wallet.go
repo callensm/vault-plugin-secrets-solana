@@ -13,13 +13,7 @@ func pathWallet(s *SolanaBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: "wallet/" + framework.GenericNameRegex("id"),
-			Fields: map[string]*framework.FieldSchema{
-				"id": {
-					Type:        framework.TypeString,
-					Description: "Unique identifier for the wallet keypair",
-					Required:    true,
-				},
-			},
+			Fields:  map[string]*framework.FieldSchema{},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: s.pathWalletWrite,
@@ -37,14 +31,8 @@ func pathWallet(s *SolanaBackend) []*framework.Path {
 			ExistenceCheck: s.pathWalletExistenceCheck,
 		},
 		{
-			Pattern: "wallet/" + framework.GenericNameRegex("id") + "/public",
-			Fields: map[string]*framework.FieldSchema{
-				"id": {
-					Type:        framework.TypeString,
-					Description: "Unique identifier of the wallet keypair",
-					Required:    true,
-				},
-			},
+			Pattern: "wallet/" + framework.GenericNameRegex("id") + "/pubkey",
+			Fields:  map[string]*framework.FieldSchema{},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ReadOperation: &framework.PathOperation{
 					Callback: s.pathWalletPublicRead,
