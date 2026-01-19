@@ -65,6 +65,54 @@ $ vault plugin register \
 $ vault secrets enable -path=solana vault-plugin-secrets-solana
 ```
 
+### Usage
+
+#### Generate and store a new Solana wallet
+
+```bash
+$ vault write -force <mount>/wallet/my-wallet
+```
+
+#### Import an existing private key
+
+```bash
+$ vault write <mount>/wallet/my-wallet private_key="<BASE-58 PRIVKEY>"
+```
+
+#### List all stored wallets IDs
+
+```bash
+$ vault list <mount>/wallets
+```
+
+#### Read public and private key material in base-58
+
+```bash
+$ vault read <mount>/wallet/my-wallet
+```
+
+#### Read only the base-58 public key
+
+```bash
+$ vault read <mount>/wallet/my-wallet/pubkey
+```
+
+#### Sign a message
+
+By default this message is signed _after_ being wrapped with the Solana V0 offchain message preamble. You can disable the offchain preamble and do a raw message signature by setting `offchain=false`.
+
+```bash
+$ vault write <mount>/wallet/my-wallet/message/sign message="my message body to sign" offchain=<bool>
+```
+
+#### Verify a message signature
+
+Similarly with the signing write operation, you can disable the Solana V0 offchain message preamble during verification by setting `offchain=false`.
+
+```bash
+$ vault write <mount>/wallet/my-wallet/message/verify message="my message body to sign" signature="<BASE-58 SIGNATURE>" offchain=<bool>
+```
+
 ## Build Source
 
 The included `Makefile` in the repository contains a target to build the two backend binaries.
