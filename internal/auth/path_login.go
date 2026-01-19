@@ -6,27 +6,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gagliardetto/solana-go"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/callensm/vault-plugin-solana/internal/message"
 )
 
 func pathLogin(s *SolanaAuthBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "login",
 		Fields: map[string]*framework.FieldSchema{
-			"nonce": {
-				Type:        framework.TypeString,
-				Description: "The generated nonce that was signed",
-				Required:    true,
-			},
 			"public_key": {
 				Type:        framework.TypeString,
-				Description: "The public key of the wallet to authenticate",
+				Description: "The base-58 public key of the wallet to authenticate",
 				Required:    true,
 			},
 			"signature": {
 				Type:        framework.TypeString,
-				Description: "The nonce message signature to be verified",
+				Description: "The base-58 nonce message signature to be verified",
 				Required:    true,
 			},
 		},
@@ -40,11 +38,6 @@ func pathLogin(s *SolanaAuthBackend) *framework.Path {
 }
 
 func (s *SolanaAuthBackend) pathLoginUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	nonce, ok := data.Get("nonce").(string)
-	if !ok || nonce == "" {
-		return logical.ErrorResponse("missing or empty nonce"), nil
-	}
-
 	pubkey, ok := data.Get("public_key").(string)
 	if !ok || pubkey == "" {
 		return logical.ErrorResponse("missing or empty public key"), nil
@@ -75,15 +68,26 @@ func (s *SolanaAuthBackend) pathLoginUpdate(ctx context.Context, req *logical.Re
 		return logical.ErrorResponse("nonce expired"), nil
 	}
 
-	if storedNonce.Nonce != nonce {
-		return logical.ErrorResponse("nonce mismatch"), nil
-	}
-
 	if storedNonce.PublicKey != pubkey {
 		return logical.ErrorResponse("public key mismatch"), nil
 	}
 
-	if !ed25519.Verify(ed25519.PublicKey(pubkey), []byte(nonce), []byte(signature)) {
+	sig, err := solana.SignatureFromBase58(signature)
+	if err != nil {
+		return logical.ErrorResponse("invalid signature"), nil
+	}
+
+	pk, err := solana.PublicKeyFromBase58(pubkey)
+	if err != nil {
+		return logical.ErrorResponse("invalid public key"), nil
+	}
+
+	msg := message.CreateOffchainMessageWithPreamble(&message.OffchainMessageOpts{
+		MessageBody: []byte(storedNonce.Nonce),
+		Version:     0,
+	})
+
+	if !ed25519.Verify(ed25519.PublicKey(pk[:]), msg, sig[:]) {
 		return logical.ErrorResponse("signature verification failed"), nil
 	}
 

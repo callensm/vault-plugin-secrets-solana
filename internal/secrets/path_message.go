@@ -2,11 +2,12 @@ package secrets
 
 import (
 	"context"
-	"encoding/base64"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/callensm/vault-plugin-solana/internal/message"
 )
 
 func pathMessage(s *SolanaSecretsBackend) []*framework.Path {
@@ -20,8 +21,13 @@ func pathMessage(s *SolanaSecretsBackend) []*framework.Path {
 				},
 				"message": {
 					Type:        framework.TypeString,
-					Description: "The base-64 encoded message to be signed by the wallet",
+					Description: "The message to be signed by the wallet",
 					Required:    true,
+				},
+				"offchain": {
+					Type:        framework.TypeBool,
+					Description: "Whether to sign the message with the Solana offchain header",
+					Default:     true,
 				},
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{
@@ -40,8 +46,13 @@ func pathMessage(s *SolanaSecretsBackend) []*framework.Path {
 				},
 				"message": {
 					Type:        framework.TypeString,
-					Description: "The base-64 encoded message to be signed by the wallet",
+					Description: "The message that was signed by the wallet",
 					Required:    true,
+				},
+				"offchain": {
+					Type:        framework.TypeBool,
+					Description: "Whether to verify the message with the Solana offchain header",
+					Default:     true,
 				},
 				"signature": {
 					Type:        framework.TypeString,
@@ -65,15 +76,12 @@ func (s *SolanaSecretsBackend) pathWalletSignMessage(ctx context.Context, req *l
 		return logical.ErrorResponse("missing wallet id"), nil
 	}
 
-	messageB64 := data.Get("message").(string)
-	if messageB64 == "" {
+	msg := data.Get("message").(string)
+	if msg == "" {
 		return logical.ErrorResponse("empty or missing message to be signed"), nil
 	}
 
-	msg, err := base64.StdEncoding.DecodeString(messageB64)
-	if err != nil {
-		return logical.ErrorResponse("invalid base64 message: %v", err), nil
-	}
+	offchain := data.Get("offchain").(bool)
 
 	entry, err := s.getWallet(ctx, req.Storage, id)
 	if err != nil {
@@ -89,7 +97,15 @@ func (s *SolanaSecretsBackend) pathWalletSignMessage(ctx context.Context, req *l
 		return logical.ErrorResponse("invalid wallet private key: %v", err), nil
 	}
 
-	sig, err := wallet.PrivateKey.Sign([]byte(msg))
+	signingMessage := []byte(msg)
+	if offchain {
+		signingMessage = message.CreateOffchainMessageWithPreamble(&message.OffchainMessageOpts{
+			MessageBody: signingMessage,
+			Version:     0,
+		})
+	}
+
+	sig, err := wallet.PrivateKey.Sign(signingMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +123,12 @@ func (s *SolanaSecretsBackend) pathWalletVerifyMessageSignature(ctx context.Cont
 		return logical.ErrorResponse("missing wallet id"), nil
 	}
 
-	messageB64 := data.Get("message").(string)
-	if messageB64 == "" {
+	msg := data.Get("message").(string)
+	if msg == "" {
 		return logical.ErrorResponse("empty or missing message to be signed"), nil
 	}
+
+	offchain := data.Get("offchain").(bool)
 
 	signature := data.Get("signature").(string)
 	if signature == "" {
@@ -120,11 +138,6 @@ func (s *SolanaSecretsBackend) pathWalletVerifyMessageSignature(ctx context.Cont
 	sig, err := solana.SignatureFromBase58(signature)
 	if err != nil {
 		return logical.ErrorResponse("invalid signature"), nil
-	}
-
-	msg, err := base64.StdEncoding.DecodeString(messageB64)
-	if err != nil {
-		return logical.ErrorResponse("invalid base64 message: %v", err), nil
 	}
 
 	entry, err := s.getWallet(ctx, req.Storage, id)
@@ -141,7 +154,15 @@ func (s *SolanaSecretsBackend) pathWalletVerifyMessageSignature(ctx context.Cont
 		return logical.ErrorResponse("invalid wallet private key: %v", err), nil
 	}
 
-	ok := wallet.PublicKey().Verify(msg, sig)
+	verificationMessage := []byte(msg)
+	if offchain {
+		verificationMessage = message.CreateOffchainMessageWithPreamble(&message.OffchainMessageOpts{
+			MessageBody: verificationMessage,
+			Version:     0,
+		})
+	}
+
+	ok := wallet.PublicKey().Verify(verificationMessage, sig)
 
 	return &logical.Response{
 		Data: map[string]any{

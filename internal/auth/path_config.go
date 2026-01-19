@@ -46,7 +46,16 @@ func pathConfig(s *SolanaAuthBackend) *framework.Path {
 				Summary:  "Configure the Solana auth backend",
 			},
 		},
+		ExistenceCheck: s.pathConfigExistenceCheck,
 	}
+}
+
+func (s *SolanaAuthBackend) pathConfigExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	entry, err := s.getConfig(ctx, req.Storage)
+	if err != nil {
+		return false, err
+	}
+	return entry != nil, nil
 }
 
 func (s *SolanaAuthBackend) pathConfigRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {

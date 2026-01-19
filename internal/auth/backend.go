@@ -38,8 +38,10 @@ func newSolanaAuthBackend() *SolanaAuthBackend {
 	s.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
 		PathsSpecial: &logical.Paths{
+			LocalStorage: []string{},
 			SealWrapStorage: []string{
 				"config",
+				"nonce/",
 			},
 			Unauthenticated: []string{
 				"login",

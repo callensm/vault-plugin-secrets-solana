@@ -22,7 +22,7 @@ func pathNonce(s *SolanaAuthBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"public_key": {
 				Type:        framework.TypeString,
-				Description: "The public key of the wallet to authenticate",
+				Description: "The base-58 public key of the wallet to authenticate",
 				Required:    true,
 			},
 		},
